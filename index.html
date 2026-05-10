@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>Legends of Japan — AR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --gold:#c9a84c;--gold-light:#f0d080;--gold-dim:#7a6030;
+      --ink:#0d0c0a;--paper:#f5eed8;--overlay:rgba(10,8,5,0.93);
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;width:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:'EB Garamond',serif}
+
+    .screen{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;transition:opacity .35s}
+    .screen.hidden{opacity:0;pointer-events:none}
+
+    #s-landing{background:var(--ink);background-image:radial-gradient(ellipse 70% 50% at 50% 40%,rgba(201,168,76,.09) 0%,transparent 70%)}
+    .mon{width:88px;height:88px;border:2px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.4rem;font-size:2rem;animation:spin 18s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .brand{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.35em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:.4rem}
+    .hero{font-family:'Cinzel Decorative',serif;font-size:clamp(1.5rem,5vw,2.2rem);color:var(--gold-light);line-height:1.15;margin-bottom:.25rem}
+    .sub-jp{font-size:.95rem;color:var(--gold-dim);letter-spacing:.2em;margin-bottom:1.6rem}
+    .rule{width:160px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:0 auto 1.6rem}
+    .hint{max-width:300px;font-size:.9rem;line-height:1.75;color:rgba(245,238,216,.72);margin-bottom:2rem}
+    .hint strong{color:var(--gold-light)}
+
+    .langs{display:flex;gap:.35rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.8rem}
+    .lb{background:transparent;border:1px solid var(--gold-dim);color:var(--gold-dim);font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.1em;padding:.28rem .65rem;cursor:pointer;border-radius:2px;transition:all .2s;-webkit-tap-highlight-color:transparent}
+    .lb:hover,.lb.on{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+
+    .cta{position:relative;overflow:hidden;background:transparent;border:1.5px solid var(--gold);color:var(--gold-light);font-family:'Cinzel',serif;font-size:.85rem;letter-spacing:.25em;text-transform:uppercase;padding:1rem 2.4rem;cursor:pointer;transition:color .3s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+    .cta::before{content:'';position:absolute;inset:0;background:var(--gold);transform:scaleX(0);transform-origin:left;transition:transform .32s;z-index:0}
+    .cta:active::before{transform:scaleX(1)}
+    .cta:active{color:var(--ink)}
+    .cta span{position:relative;z-index:1}
+    .cta:disabled{opacity:.5;cursor:not-allowed}
+
+    #s-err{background:var(--overlay)}
+    .err-icon{font-size:2.8rem;margin-bottom:1rem}
+    .err-title{font-family:'Cinzel',serif;font-size:1rem;color:var(--gold-light);letter-spacing:.1em;margin-bottom:.7rem}
+    .err-msg{font-size:.88rem;line-height:1.75;color:rgba(245,238,216,.72);max-width:290px;margin-bottom:1.5rem}
+
+    /* AR layer */
+    #ar-wrap{position:fixed;inset:0;z-index:10;display:none}
+    #ar-wrap.on{display:block}
+    #cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    #ar-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+    /* HUD */
+    #hud{position:fixed;inset:0;z-index:30;pointer-events:none;display:none}
+    #hud.on{display:block}
+    .corner{position:absolute;width:28px;height:28px;border-color:var(--gold);border-style:solid;opacity:.75}
+    .tl{top:calc(50% - 80px);left:calc(50% - 58px);border-width:2px 0 0 2px}
+    .tr{top:calc(50% - 80px);right:calc(50% - 58px);border-width:2px 2px 0 0}
+    .bl{bottom:calc(50% - 80px);left:calc(50% - 58px);border-width:0 0 2px 2px}
+    .br{bottom:calc(50% - 80px);right:calc(50% - 58px);border-width:0 2px 2px 0}
+    #scan-line{position:absolute;top:calc(50% - 80px);left:calc(50% - 58px);width:116px;height:1px;background:var(--gold);opacity:.55;animation:sweep 2.4s ease-in-out infinite}
+    @keyframes sweep{0%,100%{transform:translateY(0);opacity:.2}50%{transform:translateY(160px);opacity:.7}}
+    #scan-txt{position:absolute;bottom:5rem;left:50%;transform:translateX(-50%);font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;white-space:nowrap}
+
+    #back{position:fixed;top:1rem;left:1rem;z-index:60;background:rgba(10,8,5,.8);border:1px solid var(--gold-dim);color:var(--gold);font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.15em;padding:.4rem .8rem;cursor:pointer;display:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+    #back.on{display:block}
+
+    /* Panel */
+    #panel{position:fixed;bottom:0;left:0;right:0;z-index:70;background:var(--overlay);border-top:1px solid var(--gold-dim);padding:1.2rem 1.4rem 2.5rem;transform:translateY(110%);transition:transform .45s cubic-bezier(.16,1,.3,1);max-height:62dvh;overflow-y:auto}
+    #panel.open{transform:translateY(0)}
+    .handle{width:34px;height:3px;background:var(--gold-dim);border-radius:2px;margin:0 auto 1rem}
+    .badge{display:inline-block;font-family:'Cinzel',serif;font-size:.52rem;letter-spacing:.28em;text-transform:uppercase;padding:.18rem .7rem;border-radius:1px;margin-bottom:.5rem}
+    .p-name{font-family:'Cinzel Decorative',serif;font-size:clamp(1.3rem,4.5vw,1.9rem);color:var(--gold-light);line-height:1.1;margin-bottom:.15rem}
+    .p-jp{font-size:.78rem;color:var(--gold-dim);letter-spacing:.22em;margin-bottom:.9rem}
+    .p-rule{height:1px;background:linear-gradient(90deg,var(--gold-dim),transparent);margin-bottom:.9rem}
+    .p-desc{font-size:.88rem;line-height:1.8;color:rgba(245,238,216,.8);margin-bottom:.85rem}
+    .p-quote{border-left:2px solid var(--gold-dim);padding:.3rem .75rem;font-style:italic;font-size:.83rem;color:var(--gold);margin-bottom:1.1rem}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
+    .sbox{background:rgba(201,168,76,.05);border:1px solid var(--gold-dim);padding:.45rem .3rem;text-align:center}
+    .slabel{font-family:'Cinzel',serif;font-size:.48rem;letter-spacing:.15em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:.15rem}
+    .sval{font-size:1.15rem;color:var(--gold-light)}
+    .dots{display:flex;gap:2px;justify-content:center;margin-top:.15rem}
+    .dot{width:6px;height:6px;border-radius:50%;border:1px solid var(--gold-dim)}
+    .dot.f{background:var(--gold);border-color:var(--gold)}
+
+    /* Loading overlay */
+    #loading{position:fixed;inset:0;z-index:200;background:var(--overlay);display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+    #loading.on{display:flex}
+    .spinner{width:48px;height:48px;border:2px solid var(--gold-dim);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+    .loading-txt{font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.25em;color:var(--gold-dim);text-transform:uppercase}
+  </style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div class="screen" id="s-landing">
+  <div class="mon">⛩</div>
+  <div class="brand">Legends of Japan</div>
+  <div class="hero">AR Card Experience</div>
+  <div class="sub-jp">日本の伝説</div>
+  <div class="rule"></div>
+
+  <div class="langs">
+    <button class="lb on"  onclick="setLang('en',this)">EN</button>
+    <button class="lb"     onclick="setLang('ja',this)">日本語</button>
+    <button class="lb"     onclick="setLang('zh',this)">中文</button>
+    <button class="lb"     onclick="setLang('ko',this)">한국어</button>
+    <button class="lb"     onclick="setLang('fr',this)">FR</button>
+  </div>
+
+  <p class="hint" id="t-hint">Point your camera at any <strong>Legends of Japan</strong> card to reveal its hidden story and stats.</p>
+
+  <button class="cta" id="start-btn" onclick="onStartClick()">
+    <span id="t-start">✦ Start AR Scan</span>
+  </button>
+</div>
+
+<!-- ERROR -->
+<div class="screen hidden" id="s-err">
+  <div class="err-icon">📵</div>
+  <div class="err-title" id="t-err-title">Camera Unavailable</div>
+  <p class="err-msg" id="t-err-msg">Please allow camera access in your browser settings, then reload.</p>
+  <button class="cta" onclick="location.reload()"><span>↺ Reload</span></button>
+</div>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-txt" id="t-loading">Initialising…</div>
+</div>
+
+<!-- AR LAYER -->
+<div id="ar-wrap">
+  <video id="cam-video" autoplay muted playsinline></video>
+  <canvas id="ar-canvas"></canvas>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+  <div id="scan-line"></div>
+  <div id="scan-txt">Scanning for card…</div>
+</div>
+
+<!-- BACK -->
+<button id="back" onclick="stopAR()">← Back</button>
+
+<!-- PANEL -->
+<div id="panel">
+  <div class="handle"></div>
+  <div class="badge" id="p-badge"></div>
+  <div class="p-name" id="p-name"></div>
+  <div class="p-jp"   id="p-jp"></div>
+  <div class="p-rule"></div>
+  <p   class="p-desc" id="p-desc"></p>
+  <div class="p-quote" id="p-quote"></div>
+  <div class="stats"   id="p-stats"></div>
+</div>
+
+<script>
+/* ── i18n ─────────────────────────────────────────────── */
+const T={
+  en:{hint:'Point your camera at any <strong>Legends of Japan</strong> card to reveal its hidden story and stats.',start:'✦ Start AR Scan',scan:'Scanning for card…',back:'← Back',loading:'Initialising…','err-title':'Camera Unavailable','err-msg':'Please allow camera access in your browser settings, then reload.'},
+  ja:{hint:'<strong>Legends of Japan</strong>のカードにカメラを向けて、隠されたストーリーとステータスを解放しよう。',start:'✦ ARスキャン開始',scan:'カードをスキャン中…',back:'← 戻る',loading:'読み込み中…','err-title':'カメラが利用できません','err-msg':'ブラウザの設定でカメラのアクセスを許可してから、ページをリロードしてください。'},
+  zh:{hint:'将相机对准任意一张<strong>日本传说</strong>卡牌，解锁隐藏故事与属性。',start:'✦ 开始AR扫描',scan:'正在扫描卡片…',back:'← 返回',loading:'加载中…','err-title':'无法访问摄像头','err-msg':'请在浏览器设置中允许摄像头权限，然后重新加载页面。'},
+  ko:{hint:'<strong>Legends of Japan</strong> 카드에 카메라를 비춰 숨겨진 이야기와 스탯을 확인하세요.',start:'✦ AR 스캔 시작',scan:'카드 스캔 중…',back:'← 뒤로',loading:'로딩 중…','err-title':'카메라 사용 불가','err-msg':'브라우저 설정에서 카메라 접근을 허용한 후 페이지를 새로고침하세요.'},
+  fr:{hint:'Pointez votre caméra sur une carte <strong>Legends of Japan</strong> pour révéler son histoire et ses stats.',start:'✦ Lancer le scan AR',scan:'Recherche de carte…',back:'← Retour',loading:'Chargement…','err-title':'Caméra indisponible','err-msg':"Autorisez l'accès à la caméra dans les paramètres de votre navigateur puis rechargez."},
+};
+let lang='en';
+
+function setLang(l,btn){
+  lang=l;
+  document.querySelectorAll('.lb').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  const t=T[l]||T.en;
+  document.getElementById('t-hint').innerHTML=t.hint;
+  document.getElementById('t-start').textContent=t.start;
+  document.getElementById('scan-txt').textContent=t.scan;
+  document.getElementById('back').textContent=t.back;
+  document.getElementById('t-loading').textContent=t.loading;
+  document.getElementById('t-err-title').textContent=t['err-title'];
+  document.getElementById('t-err-msg').textContent=t['err-msg'];
+}
+
+/* ── Card data ────────────────────────────────────────── */
+// INDEX must match targets.mind compile order: 0=samurai 1=shogun 2=ninja 3=geisha 4=ronin
+const CARDS=[
+  {i:0,cls:'Samurai Class',bg:'#1a2540',fg:'#f0d080',name:'Miyamoto Musashi',jp:'宮本武蔵',
+   desc:{en:"Japan's greatest swordsman, author of The Book of Five Rings. Undefeated in over 60 duels, he perfected the Niten Ichi-ryū style of dual-sword combat.",ja:'日本最高の剣士。五輪書の著者。60回以上の決闘で無敗を誇り、二天一流を完成させた。',zh:'日本最伟大的剑客，《五轮书》作者，60余场决斗从未败北，创立二天一流双刀剑法。',ko:'일본 최고의 검객으로 《오륜서》의 저자. 60번 이상 결투에서 무패를 기록하며 이천일류를 완성했다.',fr:"Le plus grand sabreur du Japon, auteur du Livre des Cinq Anneaux. Invaincu en plus de 60 duels."},
+   quote:'"There is nothing outside of yourself that can ever enable you to get better."',qjp:'己に頼め — 敵なし',stats:{Discipline:5,Duel:5,Philosophy:4}},
+  {i:1,cls:'Shōgun Class',bg:'#1e3d12',fg:'#f0d080',name:'Tokugawa Ieyasu',jp:'徳川家康',
+   desc:{en:"Founder of the Tokugawa shogunate and unifier of Japan. His patience and strategic vision brought peace to a divided land for over 250 years.",ja:'徳川幕府の創始者。忍耐と戦略で分裂した日本を統一し、250年以上続く平和をもたらした。',zh:'德川幕府创始者，以耐心与战略眼光统一日本，带来延续250年以上的和平。',ko:'도쿠가와 막부의 창시자. 인내와 전략으로 분열된 일본을 통합해 250년 이상의 평화를 가져왔다.',fr:"Fondateur du shogunat Tokugawa et unificateur du Japon. Sa patience a apporté la paix pendant plus de 250 ans."},
+   quote:'"I will create a peaceful world and leave it as an inheritance."',qjp:'天下を平定し、後世に遺す',stats:{Unity:5,Patience:5,Legacy:5}},
+  {i:2,cls:'Ninja Class',bg:'#0e0e22',fg:'#a0b0ff',name:'Hattori Hanzō',jp:'服部半蔵',
+   desc:{en:"Master of Iga-ryū ninjutsu and loyal retainer of the Tokugawa. He operated in silence, carrying out missions that shaped the fate of a nation.",ja:'伊賀流忍術の達人にして徳川家の忠実な家臣。影の中で動き、国の命運を左右する任務を遂行した。',zh:'伊贺流忍术大师，德川家忠实家臣，在暗处执行影响国家命运的任务。',ko:'이가류 닌주쓰의 달인이자 도쿠가와의 충복. 어둠 속에서 국가의 운명을 바꾸는 임무를 수행했다.',fr:"Maître du ninjutsu Iga-ryū et fidèle serviteur des Tokugawa. Il opérait dans l'ombre."},
+   quote:'"In the shadows, loyalty is our strongest weapon."',qjp:'影に生き、忠義を武器とする',stats:{Shadow:5,Strategy:5,Loyalty:4}},
+  {i:3,cls:'Geisha Class',bg:'#2e1020',fg:'#f0d080',name:'Katsuyama',jp:'勝山',
+   desc:{en:"A master of traditional arts and beauty. Behind her grace lies a life of discipline, intelligence, and quiet strength that enchants all who cross her path.",ja:'伝統芸術と美の達人。その優雅さの裏には修練・知性・静かな強さが宿る。',zh:'传统艺术与美的大师，优雅背后是修炼、智慧与内敛的力量。',ko:'전통 예술과 미의 달인. 우아함 뒤에 수련, 지혜, 조용한 강인함이 담겨 있다.',fr:"Maîtresse des arts traditionnels. Derrière sa grâce se cachent discipline, intelligence et force tranquille."},
+   quote:'"Elegance is the language that every heart understands."',qjp:'優雅さ — すべての心に響く言葉',stats:{Elegance:5,Intelligence:4,Mystery:5}},
+  {i:4,cls:'Ronin Class',bg:'#1e1e0e',fg:'#f0d080',name:'Sanjuro',jp:'三十郎',
+   desc:{en:"A masterless samurai who walks his own path. Sanjuro seeks neither glory nor reward — only the truth in each step he takes.",ja:'己の道を歩む浪人。名声も報酬も求めず、ただ一歩一歩に真実を求め続ける。',zh:'走自己道路的浪人，既不追求荣耀也不寻求报酬，只在每一步中寻找真实。',ko:'자신만의 길을 걷는 낭인. 명성도 보상도 바라지 않으며 오직 진실을 추구한다.',fr:"Un samouraï sans maître. Sanjuro ne cherche ni gloire ni récompense — seulement la vérité."},
+   quote:'"The way of the sword is not in winning. It is in walking your own path."',qjp:'己が道を行く',stats:{Freedom:5,Blade:4,Journey:5}},
+];
+
+/* ── AR ──────────────────────────────────────────────── */
+let arController=null;
+let rafId=null;
+let lostTimer=null;
+let lastFound=-1;
+
+async function onStartClick(){
+  // 1. Quick camera availability check
+  if(!navigator.mediaDevices?.getUserMedia){
+    showErr('Camera API not supported in this browser. Use Chrome (Android) or Safari (iOS).'); return;
+  }
+
+  showLoading(true);
+
+  // 2. Request camera first — triggers browser permission dialog
+  let stream;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+  }catch(e){
+    showLoading(false);
+    showErr(); return;
+  }
+
+  // 3. Load MindAR script (lazy)
+  try{
+    await loadScript('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js');
+  }catch(e){
+    stream.getTracks().forEach(t=>t.stop());
+    showLoading(false);
+    showErr('Could not load MindAR library. Check your internet connection.'); return;
+  }
+
+  showLoading(false);
+
+  // 4. Boot AR
+  bootAR(stream);
+}
+
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[src="${src}"]`)){res();return;}
+    const s=document.createElement('script');
+    s.src=src;
+    s.onload=res;
+    s.onerror=()=>rej(new Error('Script load failed: '+src));
+    document.head.appendChild(s);
+  });
+}
+
+async function bootAR(stream){
+  const video=document.getElementById('cam-video');
+  const canvas=document.getElementById('ar-canvas');
+
+  // Attach stream
+  video.srcObject=stream;
+  await video.play().catch(()=>{});
+
+  // Size canvas
+  function resize(){
+    canvas.width=video.videoWidth||window.innerWidth;
+    canvas.height=video.videoHeight||window.innerHeight;
+  }
+  video.addEventListener('loadedmetadata',resize,{once:true});
+  resize();
+
+  // Show AR UI
+  document.getElementById('s-landing').classList.add('hidden');
+  document.getElementById('ar-wrap').classList.add('on');
+  document.getElementById('hud').classList.add('on');
+  document.getElementById('back').classList.add('on');
+
+  // Check for MindAR controller
+  const Ctrl=window.MINDAR?.IMAGE?.Controller;
+  if(!Ctrl){
+    alert('MindAR failed to initialise. Make sure you are accessing this page over HTTPS.');
+    stopAR(); return;
+  }
+
+  // Init controller
+  arController=new Ctrl({
+    inputWidth: video.videoWidth||1280,
+    inputHeight: video.videoHeight||720,
+  });
+
+  // Load targets
+  try{
+    showLoading(true);
+    await arController.addImageTargets('./targets.mind');
+    showLoading(false);
+  }catch(e){
+    showLoading(false);
+    alert('Could not load targets.mind — make sure it is in the same folder as index.html and that you are running over HTTP/HTTPS (not file://).');
+    stopAR(); return;
+  }
+
+  // Warm-up (required by MindAR before processVideo)
+  await arController.dummyRun(video);
+
+  // Start processing
+  arController.processVideo(video);
+
+  // Draw loop + poll
+  const ctx=canvas.getContext('2d');
+  (function draw(){
+    rafId=requestAnimationFrame(draw);
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    if(lastFound>=0){
+      ctx.save();
+      ctx.strokeStyle='rgba(201,168,76,.5)';
+      ctx.lineWidth=8;
+      ctx.shadowColor='#c9a84c';
+      ctx.shadowBlur=20;
+      ctx.strokeRect(8,8,canvas.width-16,canvas.height-16);
+      ctx.restore();
+    }
+  })();
+
+  (function poll(){
+    if(!arController)return;
+    try{
+      const poses=arController.getEstimatePoses?.();
+      if(poses&&poses.length){
+        let found=-1;
+        poses.forEach((p,idx)=>{ if(p&&p.isTarget) found=idx; });
+        if(found>=0){
+          clearTimeout(lostTimer);
+          if(found!==lastFound){
+            lastFound=found;
+            const card=CARDS.find(c=>c.i===found);
+            if(card) showCard(card);
+          }
+        }else if(lastFound>=0){
+          lostTimer=setTimeout(()=>{lastFound=-1;hideCard();},700);
+        }
+      }
+    }catch(e){}
+    setTimeout(poll,80);
+  })();
+}
+
+function stopAR(){
+  cancelAnimationFrame(rafId); rafId=null;
+  clearTimeout(lostTimer); lastFound=-1;
+  if(arController){
+    try{arController.stopProcessVideo?.();}catch(e){}
+    arController=null;
+  }
+  const video=document.getElementById('cam-video');
+  if(video.srcObject){ video.srcObject.getTracks().forEach(t=>t.stop()); video.srcObject=null; }
+  document.getElementById('ar-wrap').classList.remove('on');
+  document.getElementById('hud').classList.remove('on');
+  document.getElementById('back').classList.remove('on');
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('s-landing').classList.remove('hidden');
+}
+
+/* ── Panel ───────────────────────────────────────────── */
+function showCard(card){
+  const badge=document.getElementById('p-badge');
+  badge.textContent=card.cls;
+  badge.style.background=card.bg;
+  badge.style.color=card.fg;
+  badge.style.border=`1px solid ${card.fg}44`;
+  document.getElementById('p-name').textContent=card.name;
+  document.getElementById('p-jp').textContent=`— ${card.jp} —`;
+  document.getElementById('p-desc').textContent=card.desc[lang]||card.desc.en;
+  document.getElementById('p-quote').innerHTML=`${card.quote}<br><small style="color:var(--gold-dim);font-style:normal;letter-spacing:.1em">${card.qjp}</small>`;
+  const s=document.getElementById('p-stats');
+  s.innerHTML='';
+  Object.entries(card.stats).forEach(([k,v])=>{
+    const dots=Array.from({length:5},(_,i)=>`<div class="dot${i<v?' f':''}"></div>`).join('');
+    s.innerHTML+=`<div class="sbox"><div class="slabel">${k}</div><div class="sval">${v}</div><div class="dots">${dots}</div></div>`;
+  });
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('hud').classList.remove('on');
+}
+function hideCard(){
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('hud').classList.add('on');
+}
+
+/* ── Helpers ─────────────────────────────────────────── */
+function showLoading(on){
+  document.getElementById('loading').classList.toggle('on',on);
+}
+function showErr(msg){
+  if(msg) document.getElementById('t-err-msg').textContent=msg;
+  document.getElementById('s-landing').classList.add('hidden');
+  document.getElementById('s-err').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
