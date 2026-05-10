@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Legends of Japan — AR Card Experience</title>
+
+  <!-- MindAR + A-Frame -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --gold:       #c9a84c;
+      --gold-light: #f0d080;
+      --gold-dim:   #7a6030;
+      --ink:        #0d0c0a;
+      --paper:      #f5eed8;
+      --red:        #8b1a1a;
+      --blue-dark:  #1a2540;
+      --overlay-bg: rgba(10, 8, 5, 0.92);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--ink);
+      font-family: 'EB Garamond', serif;
+      color: var(--paper);
+      overflow: hidden;
+      height: 100dvh;
+      width: 100vw;
+      position: relative;
+    }
+
+    /* ─── LANDING SCREEN ─────────────────────────────────── */
+    #landing {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: var(--ink);
+      background-image:
+        radial-gradient(ellipse 70% 50% at 50% 40%, rgba(201,168,76,0.08) 0%, transparent 70%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a84c' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .mon {
+      width: 90px; height: 90px;
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+      position: relative;
+      animation: monSpin 20s linear infinite;
+    }
+    .mon::before {
+      content: '';
+      position: absolute; inset: 6px;
+      border: 1px solid var(--gold-dim);
+      border-radius: 50%;
+    }
+    .mon-inner { font-size: 2.2rem; }
+    @keyframes monSpin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .brand {
+      font-family: 'Cinzel', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.35em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .title {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      color: var(--gold-light);
+      line-height: 1.15;
+      margin-bottom: 0.3rem;
+    }
+    .subtitle-jp {
+      font-size: 1rem;
+      color: var(--gold-dim);
+      letter-spacing: 0.2em;
+      margin-bottom: 2rem;
+    }
+
+    .divider {
+      width: 160px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 0 auto 2rem;
+    }
+
+    .instructions {
+      max-width: 320px;
+      font-size: 0.92rem;
+      line-height: 1.7;
+      color: rgba(245,238,216,0.7);
+      margin-bottom: 2.5rem;
+    }
+    .instructions strong { color: var(--gold-light); }
+
+    /* Language switcher */
+    .lang-bar {
+      display: flex; gap: 0.4rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    .lang-btn {
+      background: transparent;
+      border: 1px solid var(--gold-dim);
+      color: var(--gold-dim);
+      font-family: 'Cinzel', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      padding: 0.3rem 0.7rem;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    .lang-btn.active,
+    .lang-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(201,168,76,0.08);
+    }
+
+    .start-btn {
+      position: relative;
+      background: transparent;
+      border: 1.5px solid var(--gold);
+      color: var(--gold-light);
+      font-family: 'Cinzel', serif;
+      font-size: 0.9rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      padding: 1rem 2.5rem;
+      cursor: pointer;
+      overflow: hidden;
+      transition: color 0.3s;
+    }
+    .start-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: var(--gold);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.35s ease;
+      z-index: 0;
+    }
+    .start-btn:hover::before { transform: scaleX(1); }
+    .start-btn:hover { color: var(--ink); }
+    .start-btn span { position: relative; z-index: 1; }
+
+    .card-preview {
+      display: flex; gap: 0.5rem;
+      margin-top: 2rem;
+      justify-content: center;
+    }
+    .card-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--gold-dim);
+      border: 1px solid var(--gold);
+    }
+
+    /* ─── AR SCENE ───────────────────────────────────────── */
+    #ar-scene {
+      display: none;
+      position: fixed; inset: 0; z-index: 10;
+    }
+    #ar-scene.active { display: block; }
+
+    /* ─── SCAN UI OVERLAY ────────────────────────────────── */
+    #scan-ui {
+      position: fixed; inset: 0; z-index: 50;
+      pointer-events: none;
+      display: none;
+    }
+    #scan-ui.active { display: block; }
+
+    .scan-corner {
+      position: absolute;
+      width: 28px; height: 28px;
+      border-color: var(--gold);
+      border-style: solid;
+      opacity: 0.8;
+    }
+    .scan-corner.tl { top: 50%; left: 50%; transform: translate(calc(-50% - 60px), calc(-50% - 80px)); border-width: 2px 0 0 2px; }
+    .scan-corner.tr { top: 50%; right: 50%; transform: translate(calc(50% + 60px), calc(-50% - 80px)); border-width: 2px 2px 0 0; }
+    .scan-corner.bl { bottom: 50%; left: 50%; transform: translate(calc(-50% - 60px), calc(50% + 80px)); border-width: 0 0 2px 2px; }
+    .scan-corner.br { bottom: 50%; right: 50%; transform: translate(calc(50% + 60px), calc(50% + 80px)); border-width: 0 2px 2px 0; }
+
+    .scan-line {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -80px);
+      width: 120px; height: 1px;
+      background: var(--gold);
+      opacity: 0.6;
+      animation: scanPulse 2s ease-in-out infinite;
+    }
+    @keyframes scanPulse {
+      0%, 100% { opacity: 0.2; transform: translate(-50%, -80px); }
+      50%       { opacity: 0.8; transform: translate(-50%, 80px); }
+    }
+
+    .scan-label {
+      position: absolute;
+      bottom: 2rem; left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Cinzel', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      color: var(--gold);
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    /* Back button */
+    #back-btn {
+      position: fixed;
+      top: 1rem; left: 1rem;
+      z-index: 60;
+      background: rgba(10,8,5,0.75);
+      border: 1px solid var(--gold-dim);
+      color: var(--gold);
+      font-family: 'Cinzel', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      padding: 0.45rem 0.9rem;
+      cursor: pointer;
+      display: none;
+      pointer-events: all;
+    }
+    #back-btn.active { display: block; }
+
+    /* ─── CARD DETAIL PANEL ──────────────────────────────── */
+    #card-panel {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 70;
+      background: var(--overlay-bg);
+      border-top: 1px solid var(--gold-dim);
+      padding: 1.4rem 1.6rem 2rem;
+      transform: translateY(100%);
+      transition: transform 0.45s cubic-bezier(0.16,1,0.3,1);
+      max-height: 65dvh;
+      overflow-y: auto;
+    }
+    #card-panel.open { transform: translateY(0); }
+
+    .panel-handle {
+      width: 36px; height: 3px;
+      background: var(--gold-dim);
+      border-radius: 2px;
+      margin: 0 auto 1.2rem;
+    }
+
+    .panel-class-badge {
+      font-family: 'Cinzel', serif;
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--ink);
+      padding: 0.2rem 0.8rem;
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      border-radius: 1px;
+    }
+
+    .panel-name {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: clamp(1.4rem, 4.5vw, 2rem);
+      color: var(--gold-light);
+      line-height: 1.1;
+      margin-bottom: 0.15rem;
+    }
+    .panel-name-jp {
+      font-size: 0.8rem;
+      color: var(--gold-dim);
+      letter-spacing: 0.2em;
+      margin-bottom: 1rem;
+    }
+
+    .panel-divider {
+      height: 1px;
+      background: linear-gradient(90deg, var(--gold-dim), transparent);
+      margin-bottom: 1rem;
+    }
+
+    .panel-desc {
+      font-size: 0.9rem;
+      line-height: 1.75;
+      color: rgba(245,238,216,0.82);
+      margin-bottom: 1rem;
+    }
+
+    .panel-quote {
+      border-left: 2px solid var(--gold-dim);
+      padding: 0.3rem 0.8rem;
+      font-style: italic;
+      font-size: 0.85rem;
+      color: var(--gold);
+      margin-bottom: 1.2rem;
+    }
+
+    .panel-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.6rem;
+    }
+    .stat-box {
+      background: rgba(201,168,76,0.06);
+      border: 1px solid var(--gold-dim);
+      padding: 0.5rem 0.4rem;
+      text-align: center;
+    }
+    .stat-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.5rem;
+      letter-spacing: 0.15em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      margin-bottom: 0.2rem;
+    }
+    .stat-value {
+      font-size: 1.2rem;
+      color: var(--gold-light);
+      font-weight: 500;
+    }
+    .stat-dots { display: flex; gap: 2px; justify-content: center; margin-top: 0.2rem; }
+    .stat-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      border: 1px solid var(--gold-dim);
+    }
+    .stat-dot.filled { background: var(--gold); border-color: var(--gold); }
+
+    /* ─── PERMISSION PROMPT ──────────────────────────────── */
+    #perm-prompt {
+      display: none;
+      position: fixed; inset: 0; z-index: 200;
+      background: var(--overlay-bg);
+      align-items: center; justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 2rem;
+    }
+    #perm-prompt.active { display: flex; }
+    .perm-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .perm-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1rem;
+      color: var(--gold-light);
+      margin-bottom: 0.7rem;
+      letter-spacing: 0.1em;
+    }
+    .perm-desc {
+      font-size: 0.88rem;
+      color: rgba(245,238,216,0.7);
+      line-height: 1.7;
+      max-width: 280px;
+      margin-bottom: 1.5rem;
+    }
+    .perm-btn {
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold-light);
+      font-family: 'Cinzel', serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      padding: 0.75rem 2rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     LANDING SCREEN
+═══════════════════════════════════════════════════════ -->
+<div id="landing">
+  <div class="mon"><span class="mon-inner">⛩</span></div>
+  <div class="brand" data-i18n="brand">Legends of Japan</div>
+  <div class="title" data-i18n="title">AR Card Experience</div>
+  <div class="subtitle-jp">日本の伝説</div>
+  <div class="divider"></div>
+
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('ja')">日本語</button>
+    <button class="lang-btn" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" onclick="setLang('ko')">한국어</button>
+    <button class="lang-btn" onclick="setLang('fr')">FR</button>
+  </div>
+
+  <p class="instructions" id="landing-instructions">
+    Point your camera at any <strong>Legends of Japan</strong> trading card to unlock its hidden story, stats, and lore.
+  </p>
+
+  <button class="start-btn" onclick="startAR()">
+    <span data-i18n="start-btn">✦ Start AR Scan</span>
+  </button>
+
+  <div class="card-preview">
+    <div class="card-dot"></div>
+    <div class="card-dot"></div>
+    <div class="card-dot"></div>
+    <div class="card-dot"></div>
+    <div class="card-dot"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAMERA PERMISSION PROMPT
+═══════════════════════════════════════════════════════ -->
+<div id="perm-prompt">
+  <div class="perm-icon">📷</div>
+  <div class="perm-title" data-i18n="perm-title">Camera Access Required</div>
+  <p class="perm-desc" id="perm-desc">To scan your cards, please allow camera access when prompted by your browser.</p>
+  <button class="perm-btn" onclick="grantPermission()" data-i18n="perm-btn">Allow Camera & Start</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     BACK BUTTON
+═══════════════════════════════════════════════════════ -->
+<button id="back-btn" onclick="stopAR()" data-i18n="back-btn">← Back</button>
+
+<!-- ═══════════════════════════════════════════════════════
+     SCAN UI OVERLAY
+═══════════════════════════════════════════════════════ -->
+<div id="scan-ui">
+  <div class="scan-corner tl"></div>
+  <div class="scan-corner tr"></div>
+  <div class="scan-corner bl"></div>
+  <div class="scan-corner br"></div>
+  <div class="scan-line"></div>
+  <div class="scan-label" id="scan-label">Scanning for card…</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CARD INFO PANEL
+═══════════════════════════════════════════════════════ -->
+<div id="card-panel">
+  <div class="panel-handle"></div>
+  <div id="panel-badge" class="panel-class-badge"></div>
+  <div class="panel-name" id="panel-name"></div>
+  <div class="panel-name-jp" id="panel-name-jp"></div>
+  <div class="panel-divider"></div>
+  <p class="panel-desc" id="panel-desc"></p>
+  <div class="panel-quote" id="panel-quote"></div>
+  <div class="panel-stats" id="panel-stats"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     A-FRAME / MIND-AR SCENE
+     targets.mind must be in the same folder as index.html
+═══════════════════════════════════════════════════════ -->
+<div id="ar-scene">
+  <a-scene
+    id="aframe-scene"
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no"
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+  >
+    <a-assets>
+      <img id="img-samurai"  src="./samurai.png"  crossorigin="anonymous"/>
+      <img id="img-shogun"   src="./shogun.png"   crossorigin="anonymous"/>
+      <img id="img-ninja"    src="./ninja.png"    crossorigin="anonymous"/>
+      <img id="img-geisha"   src="./geisha.png"   crossorigin="anonymous"/>
+      <img id="img-ronin"    src="./ronin.png"    crossorigin="anonymous"/>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- Target 0: Miyamoto Musashi (samurai.png) -->
+    <a-entity mindar-image-target="targetIndex: 0">
+      <a-plane src="#img-samurai"
+        position="0 0 0" rotation="0 0 0"
+        width="0.9" height="1.3"
+        material="transparent:true; opacity:0.92"
+        animation="property:rotation; from:0 -8 0; to:0 8 0; dur:2500; dir:alternate; loop:true; easing:easeInOutSine">
+      </a-plane>
+      <a-ring color="#c9a84c" radius-inner="0.5" radius-outer="0.52" position="0 0 -0.01"
+        animation="property:rotation; from:0 0 0; to:0 0 360; dur:6000; loop:true; easing:linear">
+      </a-ring>
+    </a-entity>
+
+    <!-- Target 1: Tokugawa Ieyasu (shogun.png) -->
+    <a-entity mindar-image-target="targetIndex: 1">
+      <a-plane src="#img-shogun"
+        position="0 0 0" width="0.9" height="1.3"
+        material="transparent:true; opacity:0.92"
+        animation="property:scale; from:1 1 1; to:1.04 1.04 1; dur:2000; dir:alternate; loop:true; easing:easeInOutSine">
+      </a-plane>
+      <a-ring color="#c9a84c" radius-inner="0.5" radius-outer="0.52" position="0 0 -0.01"
+        animation="property:rotation; from:0 0 0; to:0 0 360; dur:6000; loop:true; easing:linear">
+      </a-ring>
+    </a-entity>
+
+    <!-- Target 2: Hattori Hanzō (ninja.png) -->
+    <a-entity mindar-image-target="targetIndex: 2">
+      <a-plane src="#img-ninja"
+        position="0 0 0" width="0.9" height="1.3"
+        material="transparent:true; opacity:0.92"
+        animation="property:position; from:0 0.02 0; to:0 -0.02 0; dur:1800; dir:alternate; loop:true; easing:easeInOutSine">
+      </a-plane>
+      <a-ring color="#c9a84c" radius-inner="0.5" radius-outer="0.52" position="0 0 -0.01"
+        animation="property:rotation; from:0 0 0; to:0 0 360; dur:6000; loop:true; easing:linear">
+      </a-ring>
+    </a-entity>
+
+    <!-- Target 3: Katsuyama (geisha.png) -->
+    <a-entity mindar-image-target="targetIndex: 3">
+      <a-plane src="#img-geisha"
+        position="0 0 0" width="0.9" height="1.3"
+        material="transparent:true; opacity:0.92"
+        animation="property:rotation; from:-4 0 0; to:4 0 0; dur:3000; dir:alternate; loop:true; easing:easeInOutSine">
+      </a-plane>
+      <a-ring color="#c9a84c" radius-inner="0.5" radius-outer="0.52" position="0 0 -0.01"
+        animation="property:rotation; from:0 0 0; to:0 0 360; dur:6000; loop:true; easing:linear">
+      </a-ring>
+    </a-entity>
+
+    <!-- Target 4: Sanjuro (ronin.png) -->
+    <a-entity mindar-image-target="targetIndex: 4">
+      <a-plane src="#img-ronin"
+        position="0 0 0" width="0.9" height="1.3"
+        material="transparent:true; opacity:0.92"
+        animation="property:rotation; from:0 -8 0; to:0 8 0; dur:2200; dir:alternate; loop:true; easing:easeInOutSine">
+      </a-plane>
+      <a-ring color="#c9a84c" radius-inner="0.5" radius-outer="0.52" position="0 0 -0.01"
+        animation="property:rotation; from:0 0 0; to:0 0 360; dur:6000; loop:true; easing:linear">
+      </a-ring>
+    </a-entity>
+
+  </a-scene>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════ -->
+<script>
+// ── i18n ────────────────────────────────────────────────
+const i18n = {
+  en: {
+    brand: 'Legends of Japan',
+    title: 'AR Card Experience',
+    'start-btn': '✦ Start AR Scan',
+    'landing-instructions': 'Point your camera at any <strong>Legends of Japan</strong> trading card to unlock its hidden story, stats, and lore.',
+    'perm-title': 'Camera Access Required',
+    'perm-desc': 'To scan your cards, please allow camera access when prompted by your browser.',
+    'perm-btn': 'Allow Camera & Start',
+    'back-btn': '← Back',
+    'scan-label': 'Scanning for card…',
+  },
+  ja: {
+    brand: 'Legends of Japan',
+    title: 'ARカード体験',
+    'start-btn': '✦ ARスキャン開始',
+    'landing-instructions': '<strong>Legends of Japan</strong>のトレーディングカードにカメラを向けると、隠されたストーリーやステータスが解放されます。',
+    'perm-title': 'カメラのアクセスが必要です',
+    'perm-desc': 'カードをスキャンするには、ブラウザのプロンプトでカメラへのアクセスを許可してください。',
+    'perm-btn': 'カメラを許可して開始',
+    'back-btn': '← 戻る',
+    'scan-label': 'カードをスキャン中…',
+  },
+  zh: {
+    brand: 'Legends of Japan',
+    title: 'AR卡牌体验',
+    'start-btn': '✦ 开始AR扫描',
+    'landing-instructions': '将相机对准任何一张<strong>日本传说</strong>交换卡，解锁其隐藏故事、属性和背景。',
+    'perm-title': '需要相机权限',
+    'perm-desc': '请在浏览器提示时允许摄像头访问，以扫描您的卡片。',
+    'perm-btn': '允许相机并开始',
+    'back-btn': '← 返回',
+    'scan-label': '正在扫描卡片…',
+  },
+  ko: {
+    brand: 'Legends of Japan',
+    title: 'AR 카드 체험',
+    'start-btn': '✦ AR 스캔 시작',
+    'landing-instructions': '<strong>Legends of Japan</strong> 트레이딩 카드에 카메라를 향하면 숨겨진 이야기와 스탯이 공개됩니다.',
+    'perm-title': '카메라 접근 필요',
+    'perm-desc': '카드를 스캔하려면 브라우저 안내에 따라 카메라 접근을 허용해 주세요.',
+    'perm-btn': '카메라 허용 후 시작',
+    'back-btn': '← 뒤로',
+    'scan-label': '카드 스캔 중…',
+  },
+  fr: {
+    brand: 'Legends of Japan',
+    title: 'Expérience AR',
+    'start-btn': '✦ Lancer le scan AR',
+    'landing-instructions': 'Pointez votre caméra sur n'importe quelle carte <strong>Legends of Japan</strong> pour révéler son histoire, ses stats et son lore.',
+    'perm-title': 'Accès caméra requis',
+    'perm-desc': 'Pour scanner vos cartes, autorisez l'accès à la caméra lorsque votre navigateur le demande.',
+    'perm-btn': 'Autoriser la caméra',
+    'back-btn': '← Retour',
+    'scan-label': 'Scan de la carte…',
+  },
+};
+
+let currentLang = 'en';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    if (b.textContent.trim().toLowerCase() === lang || b.onclick.toString().includes(`'${lang}'`)) b.classList.add('active');
+  });
+  // apply
+  const t = i18n[lang] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (t[key]) el.innerHTML = t[key];
+  });
+  document.getElementById('landing-instructions').innerHTML = t['landing-instructions'] || '';
+  document.getElementById('perm-desc').textContent = t['perm-desc'] || '';
+  document.getElementById('scan-label').textContent = t['scan-label'] || '';
+}
+
+// ── Card Data ────────────────────────────────────────────
+// Order MUST match the order you compiled in targets.mind
+// 0=samurai, 1=shogun, 2=ninja, 3=geisha, 4=ronin
+const cards = [
+  {
+    index: 0,
+    class: 'Samurai Class',
+    badgeColor: '#1a2540',
+    badgeText: '#f0d080',
+    name: 'Miyamoto Musashi',
+    nameJp: '宮本武蔵',
+    desc: {
+      en: "Japan's greatest swordsman, author of The Book of Five Rings. Undefeated in over 60 duels, he perfected the Niten Ichi-ryū style of dual-sword combat.",
+      ja: '日本最高の剣士。『五輪書』の著者。60回以上の決闘で無敗を誇り、二天一流を完成させた。',
+      zh: '日本最伟大的剑客，《五轮书》作者，60余场决斗从未败北，创立了二天一流双刀剑法。',
+      ko: '일본 최고의 검객으로 《오륜서》의 저자. 60번 이상의 결투에서 무패를 기록하며 이천일류를 완성했다.',
+      fr: "Le plus grand sabreur du Japon, auteur du Livre des Cinq Anneaux. Invaincu en plus de 60 duels, il maîtrisait le style Niten Ichi-ryū.",
+    },
+    quote: '"There is nothing outside of yourself that can ever enable you to get better."',
+    quoteJp: '己に頼め、敵なし',
+    stats: { discipline: 5, duel: 5, philosophy: 4 },
+  },
+  {
+    index: 1,
+    class: 'Shōgun Class',
+    badgeColor: '#2e5c1a',
+    badgeText: '#f0d080',
+    name: 'Tokugawa Ieyasu',
+    nameJp: '徳川家康',
+    desc: {
+      en: 'Founder of the Tokugawa shogunate and unifier of Japan. Ieyasu\'s patience and strategic vision brought peace to a divided land and shaped a legacy that lasted over 250 years.',
+      ja: '徳川幕府の創始者。忍耐と戦略的洞察で分裂した日本を統一し、250年以上続く遺産を築いた。',
+      zh: '德川幕府的创始者，日本的统一者。以耐心与战略眼光平定乱世，留下延续250余年的遗产。',
+      ko: '도쿠가와 막부의 창시자이자 일본의 통일자. 인내와 전략으로 분열된 나라를 통합해 250년 이상 지속될 유산을 남겼다.',
+      fr: "Fondateur du shogunat Tokugawa et unificateur du Japon. Sa patience et sa vision stratégique ont apporté la paix à une nation divisée pendant plus de 250 ans.",
+    },
+    quote: '"I will create a peaceful world and leave it as an inheritance."',
+    quoteJp: '天下を平定し、後世に遺す',
+    stats: { unity: 5, patience: 5, legacy: 5 },
+  },
+  {
+    index: 2,
+    class: 'Ninja Class',
+    badgeColor: '#1a1a2e',
+    badgeText: '#a0b0ff',
+    name: 'Hattori Hanzō',
+    nameJp: '服部半蔵',
+    desc: {
+      en: 'Master of Iga-ryū ninjutsu and loyal retainer of the Tokugawa. Hattori Hanzō operated in silence, carrying out missions that shaped the fate of a nation.',
+      ja: '伊賀流忍術の達人にして徳川家の忠実な家臣。服部半蔵は影の中で動き、国の命運を左右する任務を遂行した。',
+      zh: '伊贺流忍术大师，德川家的忠实家臣。服部半藏在暗处行动，执行了影响国家命运的任务。',
+      ko: '이가류 닌주쓰의 달인이자 도쿠가와 가문의 충직한 가신. 하토리 한조는 어둠 속에서 움직이며 국가의 운명을 바꾸는 임무를 수행했다.',
+      fr: "Maître du ninjutsu Iga-ryū et fidèle serviteur des Tokugawa. Hattori Hanzō opérait dans l'ombre, accomplissant des missions qui façonnèrent le destin d'une nation.",
+    },
+    quote: '"In the shadows, loyalty is our strongest weapon."',
+    quoteJp: '影に生き、忠義を武器とする',
+    stats: { shadow: 5, strategy: 5, loyalty: 4 },
+  },
+  {
+    index: 3,
+    class: 'Geisha Class',
+    badgeColor: '#3d1a2e',
+    badgeText: '#f0d080',
+    name: 'Katsuyama',
+    nameJp: '勝山',
+    desc: {
+      en: 'A master of traditional arts and beauty, Katsuyama enchants all who cross her path. Behind her grace lies a life of discipline, intelligence, and quiet strength.',
+      ja: '伝統芸術と美の達人。勝山は出会う者すべてを魅了する。その優雅さの裏には、修練と知性と静かなる強さがある。',
+      zh: '传统艺术与美的大师，胜山令所有遇见她的人为之倾倒。优雅背后是修炼、智慧与内敛的力量。',
+      ko: '전통 예술과 미의 달인, 가쓰야마는 그녀를 만나는 모든 이를 매혹한다. 그 우아함 뒤에는 수련, 지혜, 조용한 강인함이 있다.',
+      fr: "Maîtresse des arts traditionnels et de la beauté, Katsuyama ensorcelle tous ceux qui croisent son chemin. Derrière sa grâce se cachent discipline, intelligence et force tranquille.",
+    },
+    quote: '"Elegance is the language that every heart understands."',
+    quoteJp: '優雅さ、すべての心に響く言葉',
+    stats: { elegance: 5, intelligence: 4, mystery: 5 },
+  },
+  {
+    index: 4,
+    class: 'Ronin Class',
+    badgeColor: '#2a2a1a',
+    badgeText: '#f0d080',
+    name: 'Sanjuro',
+    nameJp: '三十郎',
+    desc: {
+      en: 'A masterless samurai who walks his own path. Sanjuro seeks neither glory nor reward — only the truth in each step he takes.',
+      ja: '己の道を歩む浪人。三十郎は名声も報酬も求めない。ただ、一歩一歩に真実を求め続ける。',
+      zh: '走自己道路的浪人，三十郎既不追求荣耀也不寻求报酬，只是在每一步中寻找真实。',
+      ko: '자신만의 길을 걷는 낭인, 산주로는 명성도 보상도 바라지 않으며 오직 발걸음마다 진실을 추구한다.',
+      fr: "Un samouraï sans maître qui trace sa propre voie. Sanjuro ne cherche ni gloire ni récompense — seulement la vérité dans chacun de ses pas.",
+    },
+    quote: '"The way of the sword is not in winning. It is in walking your own path."',
+    quoteJp: '己が道を行く',
+    stats: { freedom: 5, blade: 4, journey: 5 },
+  },
+];
+
+// ── AR Logic ─────────────────────────────────────────────
+let mindARSystem = null;
+let arStarted = false;
+
+function startAR() {
+  // Check if camera is likely available
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Camera not supported in this browser. Please use Chrome on Android or Safari on iOS.');
+    return;
+  }
+  document.getElementById('perm-prompt').classList.add('active');
+}
+
+async function grantPermission() {
+  document.getElementById('perm-prompt').classList.remove('active');
+  try {
+    // Request permission early so the stream starts cleanly
+    await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+  } catch(e) {
+    alert('Camera access denied. Please allow camera in your browser settings and reload.');
+    return;
+  }
+  launchAR();
+}
+
+function launchAR() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('ar-scene').classList.add('active');
+  document.getElementById('scan-ui').classList.add('active');
+  document.getElementById('back-btn').classList.add('active');
+
+  const sceneEl = document.getElementById('aframe-scene');
+
+  sceneEl.addEventListener('loaded', () => {
+    const sys = sceneEl.systems['mindar-image-system'];
+    mindARSystem = sys;
+    sys.start();
+    arStarted = true;
+    bindTargetEvents();
+  }, { once: true });
+
+  // If scene already loaded (e.g. re-launch)
+  if (sceneEl.hasLoaded && !arStarted) {
+    const sys = sceneEl.systems['mindar-image-system'];
+    mindARSystem = sys;
+    sys.start();
+    arStarted = true;
+    bindTargetEvents();
+  }
+}
+
+function bindTargetEvents() {
+  cards.forEach(card => {
+    const targets = document.querySelectorAll('[mindar-image-target]');
+    targets.forEach(el => {
+      const idx = parseInt(el.getAttribute('mindar-image-target').split(':')[1].trim());
+      if (idx === card.index) {
+        el.addEventListener('targetFound', () => showCard(card));
+        el.addEventListener('targetLost',  () => hideCard());
+      }
+    });
+  });
+}
+
+function showCard(card) {
+  const lang = currentLang;
+  const t = i18n[lang] || i18n.en;
+
+  // Badge
+  const badge = document.getElementById('panel-badge');
+  badge.textContent = card.class;
+  badge.style.background = card.badgeColor;
+  badge.style.color = card.badgeText;
+  badge.style.border = `1px solid ${card.badgeText}44`;
+
+  document.getElementById('panel-name').textContent = card.name;
+  document.getElementById('panel-name-jp').textContent = `— ${card.nameJp} —`;
+  document.getElementById('panel-desc').textContent = card.desc[lang] || card.desc.en;
+  document.getElementById('panel-quote').innerHTML =
+    `${card.quote}<br><small style="color:var(--gold-dim);font-style:normal;letter-spacing:0.1em">${card.quoteJp}</small>`;
+
+  // Stats
+  const statsEl = document.getElementById('panel-stats');
+  statsEl.innerHTML = '';
+  Object.entries(card.stats).forEach(([key, val]) => {
+    const box = document.createElement('div');
+    box.className = 'stat-box';
+    const dots = Array.from({length:5}, (_,i) =>
+      `<div class="stat-dot ${i < val ? 'filled' : ''}"></div>`).join('');
+    box.innerHTML = `<div class="stat-label">${key}</div><div class="stat-value">${val}</div><div class="stat-dots">${dots}</div>`;
+    statsEl.appendChild(box);
+  });
+
+  document.getElementById('card-panel').classList.add('open');
+  document.getElementById('scan-ui').classList.remove('active');
+}
+
+function hideCard() {
+  document.getElementById('card-panel').classList.remove('open');
+  document.getElementById('scan-ui').classList.add('active');
+}
+
+function stopAR() {
+  if (mindARSystem) {
+    try { mindARSystem.stop(); } catch(e) {}
+    arStarted = false;
+  }
+  document.getElementById('ar-scene').classList.remove('active');
+  document.getElementById('scan-ui').classList.remove('active');
+  document.getElementById('back-btn').classList.remove('active');
+  document.getElementById('card-panel').classList.remove('open');
+  document.getElementById('landing').style.display = 'flex';
+}
+
+// ── Boot ────────────────────────────────────────────────
+setLang('en');
+</script>
+</body>
+</html>
